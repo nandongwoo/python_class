@@ -1,71 +1,70 @@
-from selenium import webdriver
-import time
-from selenium.webdriver.common.by import By
+from konlpy.tag import Kkma
 from konlpy.tag import Okt
 from collections import Counter
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import time
 import pandas as pd
-
 import pymysql
 
-# 셀레니움으로 인기급상승 주소 접속 
-driver = webdriver.Chrome()
-driver.get("https://www.youtube.com/feed/trending")
-# driver.get("https://www.youtube.com")
+plt.rcParams['font.family'] = 'Malgun Gothic'
+plt.rcParams['axes.unicode_minus'] = False
+# 임포트를 하고 사용하지 않으면 흐리게 표시된다.
 
-# 무한스크롤 함수
-def scroll():
+def scroll_fun():
     while True:
-        before_scroll_height = driver.execute_script("return document.documentElement.scrollHeight")
-        driver.execute_script("window.scrollTo(0, document.documentElement.scrollHeight)")
+        h1 = driver.execute_script("return document.documentElement.scrollHeight")
+        print("현재높이",h1)
+        # 스크롤을 현재높이 만큼 내리기
+        driver.execute_script("window.scrollTo(0,document.documentElement.scrollHeight)")
+        #영상 로딩 시간
         time.sleep(2)
-        after_scroll_height = driver.execute_script("return document.documentElement.scrollHeight")
-        time.sleep(2)
-        if before_scroll_height == after_scroll_height:
+
+        h2= driver.execute_script("return document.documentElement.scrollHeight")
+        print("두번 째 높이:", h2)
+        if h1 == h2 :
+            print("끝!")
             break
-    time.sleep(2)
 
-# 무한스크롤 함수 호출
-scroll()
-
-# 제목, 조회수 텍스트 포함된 요소 선택
-titles = driver.find_elements(By.XPATH, '//*[@id="video-title"]')
+# 크롬 브라우저 실행
+driver = webdriver.Chrome()
+# 유튜브 인기급상승 페이지 접속
+driver.get("https://www.youtube.com/feed/trending")
 time.sleep(2)
 
-# 제목, 조회수 리스트 선언 
-hits_list = []
-title_list = []
+# 무한스크롤 함수 호출
+scroll_fun()
 
-# 제목, 조회수 리스트 데이터 수집
+#제목 요소 가져오기
+titles = driver.find_elements(By.XPATH, '//*[@id="video-title"]')
+
+#제목 저장을 위한 리스트
+title_list = []
+#조회수 저장을 위한 리스트
+hits_list= []
+
 for title in titles:
-    # shorts 영상, YouTube 영화, 제목데이터 없는 컨텐츠 
+    # short , 영화 , 제목데이터가 없는 컨텐츠 # shorts 영상을 걸러내기 위한 조건문
     if title.get_attribute("aria-label") and title.text and "YouTube 영화" not in title.get_attribute("aria-label"): 
         aria_label = title.get_attribute("aria-label")
-        start_index = aria_label.rfind("조회수")+4
+        start_index= aria_label.rfind("조회수")+4
         end_index = aria_label.rfind("회")
         hits = aria_label[start_index:end_index]
-        # 조회수 값 범위에 따라 분리 
-        # 조회수 없는 영상은 0으로, 조회수가 1000미만인 영상은 , 처리 생략 
-        # 조회수 1,000 이상 영상
-        if "," in hits:
-            hits = int(hits.replace(",",""))
-        # 조회수 없는 영상 
-        elif not hits:
-            hits = 0
-        # 조회수 1,000 미만 
-        else:
-            hits = int(hits)            
-        # 동일한 제목 영상은 한 번만 
-        if title.text not in title_list:
-            title_list.append(title.text)
-            hits_list.append(hits)
+        # 조회수 값 범위에 따라 분리
+        # 조회수 없는 영상은 0으로, 조회수가 1000미만인 영상은 , 처리 생략
+        # 조회수 1,000 이상인 영상
+        hits = int(hits.replace(",",""))
+        title_list.append(title.text)
+        hits_list.append(hits)
 
 conn = pymysql.connect(
-    host='127.0.0.1', 
-    user='user_python', 
-    password='1234', 
-    db='db_python', 
+    host='127.0.0.1',
+    user='user_python',
+    password='1234',
+    db='db_python',
     charset='utf8mb4')
 
 cur = conn.cursor()
@@ -75,43 +74,55 @@ cur.executemany(sql, tuple_result)
 
 conn.commit()
 
-# # 제목 리스트에서 명사, 형용사 추출 d
-# okt = Okt()
-# word_list = []
-# for title in title_list:
-#     # print("제목", title)
-#     for word, tag in okt.pos(title):'
-#         # print(word, tag)
-#         if tag in ['Noun', 'Adjective']:
-#             word_list.append(word)
-
-# # 동일 단어 횟수 추출  
-# word_list_count = Counter(word_list)
-
-# # 워드클라우드 객체 선언 및 출력 
-# wc =  WordCloud(font_path = 'malgun', width=400, height=400)
-# result = wc.generate_from_frequencies(word_list_count)
-# plt.axis('off')
-# plt.imshow(result)
-# plt.show()
-# wc.to_file('result.png')
-
-# # csv 파일로 저장
 crawling_result = {
     "title": title_list,
     "hits": hits_list
 }
 
-dataFrame = pd.DataFrame(crawling_result)
+result = pd.DataFrame(crawling_result)
+# dataframe을 csv로 저장
+# result.to_csv("./result.csv", encoding="utf-8-sig")
+# 조회수 내림차순으로 정렬 후 csv로 저장
+result.sort_values(by=["hits"], ascending=False).to_csv("./result.csv", encoding="utf-8-sig")
 
-# dataFrame.to_sql(name=table1, )
+okt = Okt()
+kkma = Kkma()
+word_list = []
+# okt, kkma 로 추출할 때 에는 리스트 클라스에 담아서 바로 추출할 수 없기 때문에
+# for문을 사용해서 걸러주는 작업이 필요함
+# 명사, 형용사만 따로 출력
+for title in title_list:
+    for word, tag in okt.pos(title):
+    # if tag in 'Noun': # 명사만
+        if tag in ['Noun', 'Adjective']: # 명사만
+        # print(word, tag)
+            word_list.append(word)
 
-dataFrame.sort_values(by=["hits"], ascending=False).to_csv("result.csv", encoding="utf-8-sig")
+#같은 단어 노출 빈도
+word_list_count = Counter(word_list)
 
-# csv_file = pd.read_csv("result.csv")
-# host = "127.0.0.1"
-# user = "user_python"
-# password = "1234"
-# database = "db_python"
+# 단어로 이루어진 리스트 생성
+words = []
+for word, count in word_list_count.most_common(5):
+    words.append(word)
 
+# words = [word for word, count in word_list_count.most_common(5)]
+# 횟수로 이루어진 리스트 생성 
+counts = [count for word, count in word_list_count.most_common(5)]
+plt.bar(words, counts)
+plt.show()
 
+# 워드클라우드 객체 생성
+wc = WordCloud(font_path='malgun', width=400, height=400)
+
+#Counter 로 분석한 데이터를 wordcloud로 만들기
+result = wc.generate_from_frequencies(word_list_count)
+
+#matplotlib로 이미지 출력하기
+plt.axis('off') # x, y 축은 필요없음으로 생략
+
+#결과를 이미지로 출력할 준비
+plt.imshow(result)
+#이미지 출력
+plt.show()
+# wc.to_file('YouTube.png')
