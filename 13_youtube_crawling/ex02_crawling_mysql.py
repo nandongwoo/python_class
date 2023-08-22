@@ -75,7 +75,7 @@ cur.executemany(sql, tuple_result)
 
 conn.commit()
 
-# # 제목 리스트에서 명사, 형용사 추출 
+# # 제목 리스트에서 명사, 형용사 추출 d
 # okt = Okt()
 # word_list = []
 # for title in title_list:

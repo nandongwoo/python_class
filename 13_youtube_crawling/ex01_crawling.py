@@ -31,7 +31,7 @@ scroll()
 titles = driver.find_elements(By.XPATH, '//*[@id="video-title"]')
 time.sleep(2)
 
-# 제목, 조회수 리스트 선언 
+# 제목, 조회수 리스트 선언 d
 hits_list = []
 title_list = []
 
