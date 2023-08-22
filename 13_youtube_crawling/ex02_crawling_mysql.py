@@ -80,7 +80,7 @@ conn.commit()
 # word_list = []
 # for title in title_list:
 #     # print("제목", title)
-#     for word, tag in okt.pos(title):
+#     for word, tag in okt.pos(title):'
 #         # print(word, tag)
 #         if tag in ['Noun', 'Adjective']:
 #             word_list.append(word)
