@@ -14,3 +14,16 @@
 4. 수집된 제목으로 부터 명사, 형용사 추출하여 결과를 별도 리스트로 저장
 5. 추출한 명사, 형용사를 가지고 워드클라우드 이미지 생성 
 6. 제목, 조회수 데이터는 pandas로 result.csv 라는 이름으로 저장(저장시 조회수 기준 내림차순) 
+
+
+### db 저장시 한글 처리를 위한 쿼리 
+```
+create table table1(
+	title varchar(500),
+    hit int
+    ) default charset=utf8;
+
+alter database db_python character set = utf8mb4 collate = utf8mb4_unicode_ci;
+alter table table1 convert to character set utf8mb4 collate utf8mb4_unicode_ci;
+alter table table1 change title title varchar(500) character set utf8mb4 collate utf8mb4_unicode_ci;
+```
